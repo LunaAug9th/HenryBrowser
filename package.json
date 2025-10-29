@@ -1,0 +1,16 @@
+{
+  "name": "henrybrowser",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "electron": "^38.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.8.1",
+    "typescript": "^5.9.3"
+  },
+  "type": "module"
+}
