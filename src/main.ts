@@ -53,6 +53,7 @@ function createMainWindow(): void {
   mainWin = new BrowserWindow({
     width: 1200,
     height: 800,
+    icon: path.join(__dirname, 'icon.png'),
     webPreferences: {
       contextIsolation: true,
       sandbox: true,
@@ -99,6 +100,31 @@ function buildMenu(): void {
           submenu: dynamicTabListSubmenu(),
         },
       ],
+    },
+    {
+      label: 'Navigation',
+      submenu: [
+        {
+          label: 'Back/Undo',
+          accelerator: 'CmdOrCtrl+Z', // 이전 페이지
+          click: () => {
+            if (activeTabId) {
+              const tab = tabs.get(activeTabId);
+              if (tab?.wc?.navigationHistory.canGoBack()) {tab.wc.navigationHistory.goBack()}
+            }
+          }
+        },
+        {
+          label: 'Forward/Redo',
+          accelerator: 'CmdOrCtrl+Y', // 다음 페이지
+          click: () => {
+            if (activeTabId) {
+              const tab = tabs.get(activeTabId);
+              if (tab?.wc?.navigationHistory.canGoForward()) {tab.wc.navigationHistory.goForward()}
+            }
+          }
+        }
+      ]
     },
     { role: 'viewMenu' },
     { role: 'windowMenu' },
