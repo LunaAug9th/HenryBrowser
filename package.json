@@ -1,16 +1,54 @@
 {
   "name": "henrybrowser",
+  "version": "1.0.0",
+  "description": "HenryBrowser - lightweight browser with TypeScript and Electron",
+  "author": {
+    "name": "Henry7611913083",
+    "email": "henryexplorer_social@aol.com"
+  },
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build": "tsc"
-  },
-  "dependencies": {
-    "electron": "^38.3.0"
+    "build": "tsc",
+    "pack": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder"
   },
   "devDependencies": {
-    "@types/node": "^24.8.1",
+    "electron": "^38.3.0",
+    "electron-builder": "^26.0.12",
     "typescript": "^5.9.3"
+  },
+  "build": {
+    "appId": "pro.hexplr.henrybrowser",
+    "files": [
+      "dist/**/*",
+      "main.js",
+      "config.json",
+      "src/select.html"
+    ],
+    "mac": {
+      "target": [
+        "zip"
+      ],
+      "category": "public.app-category.internet",
+      "icon": "icons/icon.icns"
+    },
+    "win": {
+      "target": [
+        "portable"
+      ],
+      "icon": "icons/icon.ico"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb",
+        "rpm",
+        "tar.gz"
+      ],
+      "category": "Network;WebBrowser;",
+      "icon": "icons/icon.png"
+    }
   },
   "type": "module"
 }

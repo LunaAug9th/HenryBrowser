@@ -29,7 +29,7 @@ function readconfig() {
       const raw = fs.readFileSync(configPath, 'utf-8');
       config = JSON.parse(raw);
     } catch (err) {
-      console.warn('[경고] config.json을 읽는 중 오류 발생:', err);
+      console.warn('[WARN] config.json Read Error:', err);
     }
   }
   
@@ -61,10 +61,10 @@ function createMainWindow(): void {
     },
   });
 
-  mainWin.loadFile(path.join(__dirname, 'src', 'pages', 'select.html'));
   buildMenu();
 
-  createTab(`${Date.now()}`, path.join(__dirname, 'src', 'pages', 'select.html'));
+  mainWin.loadURL('about:blank');
+  createTab(`${Date.now()}`, path.join(__dirname, 'src', 'select.html'));
 
   ipcMain.on('refresh-tab-menu', buildMenu)
 }
@@ -79,15 +79,11 @@ function buildMenu(): void {
         {
           label: 'new Tab',
           accelerator: 'CmdOrCtrl+T',
-          click: () => createTab(`tab${Date.now()}`, path.join(__dirname, 'src', 'pages', 'select.html')),
-        },
-        {
-          label: 'Full Clone This Tab',
-          click: () => duplicateTab(true),
+          click: () => createTab(`${Date.now()}`, path.join(__dirname, 'src', 'select.html')),
         },
         {
           label: 'Clone This Tab and Refetch',
-          click: () => duplicateTab(false),
+          click: () => duplicateTab(),
         },
         {
           label: 'Close This Tab',
@@ -106,7 +102,7 @@ function buildMenu(): void {
       submenu: [
         {
           label: 'Back/Undo',
-          accelerator: 'CmdOrCtrl+Z', // 이전 페이지
+          accelerator: 'CmdOrCtrl+Z',
           click: () => {
             if (activeTabId) {
               const tab = tabs.get(activeTabId);
@@ -116,7 +112,7 @@ function buildMenu(): void {
         },
         {
           label: 'Forward/Redo',
-          accelerator: 'CmdOrCtrl+Y', // 다음 페이지
+          accelerator: 'CmdOrCtrl+Y',
           click: () => {
             if (activeTabId) {
               const tab = tabs.get(activeTabId);
@@ -135,15 +131,22 @@ function buildMenu(): void {
 }
 
 function dynamicTabListSubmenu(): Electron.MenuItemConstructorOptions[] {
-  if (tabs.size === 0) return [{ label: 'Not any Tab Opened', enabled: false }];
+  if (tabs.size === 0) 
+    return [{ label: 'Not any Tab Opened', enabled: false }];
 
-  return Array.from(tabs.keys()).map((id) => ({
-    label: `${id}${id === activeTabId ? ' (Active)' : ''}`,
-    type: 'radio',
-    checked: id === activeTabId,
-    click: () => switchToTab(id),
-  }));
+  return Array.from(tabs.keys()).map((id) => {
+    const tab = tabs.get(id);
+    const title = tab?.wc?.getTitle() || tab?.name || 'Untitled';
+
+    return {
+      label: `${title}${id === activeTabId ? ' (Active)' : ''}`,
+      type: 'radio',
+      checked: id === activeTabId,
+      click: () => switchToTab(id),
+    };
+  });
 }
+
 
 async function createTab(id: string, url: string, mode: 'headful' | 'headless' = 'headful') {
   if (!mainWin) return;
@@ -151,14 +154,24 @@ async function createTab(id: string, url: string, mode: 'headful' | 'headless' =
   const view = new BrowserView({ webPreferences: { contextIsolation: true } });
   await view.webContents.loadURL(url);
 
-  const tabName = view.webContents.getTitle() || 'Untitled';
+  const wc = view.webContents;
+  const tabName = wc.getTitle() || 'Untitled';
 
-  tabs.set(id, { id, mode, view, wc: view.webContents, name: tabName });
+  tabs.set(id, { id, mode, view, wc, name: tabName });
   activeTabId = id;
+
+  wc.on('page-title-updated', (event, title) => {
+    event.preventDefault();
+    const tab = tabs.get(id);
+    if (tab) tab.name = title || 'Untitled';
+    if (id === activeTabId) mainWin!.setTitle(title);
+    buildMenu();
+  });
 
   attachViewToMainWindow(id);
   buildMenu();
 }
+
 
 
 function attachViewToMainWindow(id: string): void {
@@ -171,9 +184,9 @@ function attachViewToMainWindow(id: string): void {
   const [width, height] = mainWin.getContentSize();
   tab.view.setBounds({
     x: 0,
-    y: 40,
+    y: 0,
     width: width,
-    height: height - 40
+    height: height
   });
 
   tab.view.setAutoResize({ width: true, height: true });
@@ -190,9 +203,9 @@ function switchToTab(id: string): void {
   const [width, height] = mainWin.getContentSize();
   tab.view.setBounds({
     x: 0,
-    y: 40,
+    y: 0,
     width: width,
-    height: height - 40
+    height: height
   });
 
   tab.view.setAutoResize({ width: true, height: true });
@@ -220,31 +233,14 @@ function removeActiveTab(): void {
   buildMenu()
 }
 
-async function duplicateTab(includeState: boolean): Promise<void> {
+async function duplicateTab(): Promise<void> {
   if (!mainWin || !activeTabId) return;
   const src = tabs.get(activeTabId);
   if (!src?.wc) return;
 
-  const newId = `tab${Date.now()}`;
+  const newId = `${Date.now()}`;
 
-  if (includeState) {
-    const html = await src.wc.executeJavaScript('document.documentElement.outerHTML');
-    const url = src.wc.getURL();
-
-    const view = new BrowserView({ webPreferences: { contextIsolation: true } });
-    await view.webContents.loadURL('about:blank');
-    await view.webContents.executeJavaScript(`
-      document.open();
-      document.write(${JSON.stringify(html)});
-      document.close();
-      history.replaceState({}, '', ${JSON.stringify(url)});
-    `);
-
-    tabs.set(newId, { id: newId, mode: src.mode, view, wc: view.webContents });
-    attachViewToMainWindow(newId);
-  } else {
-    await createTab(newId, src.wc.getURL(), src.mode);
-  }
+  await createTab(newId, src.wc.getURL(), src.mode);
 
   buildMenu()
 }

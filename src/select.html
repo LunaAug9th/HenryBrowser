@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HenryBrowser Home</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: white;
+      color: black;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .textboxset {
+      padding: 8px;
+      font-size: 1rem;
+      border-radius: 4px;
+      border: 1px solid;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      body {
+        background-color: #1c1f23;
+        color: #f0f0f0;
+      }
+    }
+
+    button:hover {
+      background-color: #ddd;
+    }
+  </style>
+</head>
+<body>
+  <img src="../icons/icon.png" style="width:35px;height:35px;margin-bottom:-10px;"alt="icon">
+  <h3 style="display:inline-block;margin:12px;">HenryBrowser</h3>
+  <input type="text" id="urlInput" class="textboxset" style="width:60%;margin:8px;margin-bottom:40px;border-color: #ccc;background-color:white;
+" placeholder="Enter the URL">
+  <button id="openBtn" class="textboxset" style="padding-left:12px;padding-right:12px;margin:4px;cursor:pointer;border-color: #888;background-color:#f0f0f0;color:black;">Fetch</button>
+  <script>
+    const input = document.getElementById('urlInput');
+    function openUrl() {
+      let url = input.value.trim();
+      if (!url) return;
+      if (!/^https?:\/\//i.test(url)) {
+        url = 'https://' + url;
+      }
+
+      window.location.href = url;
+    }
+    document.getElementById('openBtn').addEventListener('click', openUrl);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        openUrl();
+      }
+    });
+  </script>  
+</body>
+</html>
